@@ -3,6 +3,9 @@ import { DOMParser } from "@b-fuze/deno-dom";
 
 const app = new Hono();
 
+const kv = await Deno.openKv();
+
+
 async function fetchHtmlTitle(url: string): Promise<string | undefined> {
   try {
       const res = await fetch(url);
@@ -34,5 +37,18 @@ app.get("/api/title", async (c) => {
   }
   return c.json<{ url: string; title: string }> ({ url, title });
 });
+
+app.post("/api/bookmarks", async (c) => {
+  const body = await c.req.parseBody<{ url: string }>();
+  const url = body.url;
+
+  const title = await fetchHtmlTitle(url);
+  
+  const result = await kv.set(["bookmark", url], { url, title });
+  return c.json({ result }, 201);
+});
+
+
+
 
 Deno.serve(app.fetch)
